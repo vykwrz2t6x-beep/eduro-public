@@ -25,7 +25,7 @@ function setupTaskPeek(){
 
   const p=document.createElement("div");
   p.className="peek";p.id="peek";p.setAttribute("aria-hidden","true");
-  p.innerHTML='<div class="peek-head"><span class="peek-t">Условие задачи</span><span class="peek-acts">'+
+  p.innerHTML='<div class="peek-head"><span class="peek-t">Условие</span><span class="peek-acts">'+
     '<button class="peek-up" type="button">↓ к заданию</button>'+
     '<button class="peek-off" type="button">Открепить</button></span></div><div class="peek-body"></div>';
   p.querySelector(".peek-body").appendChild(src.cloneNode(true));
