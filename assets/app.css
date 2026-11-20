@@ -152,7 +152,7 @@ details[open]>*:not(summary){animation:f .35s var(--ease) both}
  background:
    radial-gradient(120% 90% at 18% -30%,rgba(255,255,255,.95),rgba(255,255,255,0) 62%),
    linear-gradient(180deg,rgba(255,255,255,.60),rgba(255,255,255,.36));
- -webkit-backdrop-filter:blur(40px) saturate(210%) brightness(1.05);backdrop-filter:blur(40px) saturate(210%) brightness(1.05);
+ -webkit-backdrop-filter:blur(28px) saturate(200%) brightness(1.04);backdrop-filter:blur(28px) saturate(200%) brightness(1.04);
  border:1px solid rgba(255,255,255,.65);
  box-shadow:
    inset 0 1.5px 0 rgba(255,255,255,.98),
@@ -161,9 +161,10 @@ details[open]>*:not(summary){animation:f .35s var(--ease) both}
    inset -1px 0 0 rgba(255,255,255,.55),
    0 22px 60px rgba(70,40,110,.24),
    0 4px 14px rgba(70,40,110,.12);
- opacity:0;transform:translate(-50%,-18px) scale(.985);pointer-events:none;overflow:hidden;
- transition:opacity .3s ease,transform .45s var(--ease)}
-.peek.on{opacity:1;transform:translate(-50%,0) scale(1);pointer-events:auto}
+ opacity:0;transform:translate3d(-50%,-16px,0);pointer-events:none;overflow:hidden;
+ will-change:transform,opacity;backface-visibility:hidden;
+ transition:opacity .2s cubic-bezier(.4,0,.2,1),transform .32s cubic-bezier(.2,.8,.2,1)}
+.peek.on{opacity:1;transform:translate3d(-50%,0,0);pointer-events:auto}
 /* блик по контуру — «жидкое» стекло */
 .peek::before{content:"";position:absolute;inset:0;border-radius:inherit;padding:1.2px;pointer-events:none;
  background:linear-gradient(150deg,rgba(255,255,255,.98),rgba(255,255,255,.10) 42%,rgba(255,255,255,.16) 62%,rgba(255,255,255,.85));
@@ -175,25 +176,17 @@ details[open]>*:not(summary){animation:f .35s var(--ease) both}
  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:6px}
 .peek-t::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--a);box-shadow:0 0 0 3px rgba(255,59,48,.14)}
 .peek-acts{display:flex;gap:6px;align-items:center}
-.peek-up{border:1px solid rgba(255,255,255,.7);background:rgba(255,255,255,.55);color:var(--a);border-radius:999px;
+.peek-up{border:1px solid rgba(255,255,255,.7);background:rgba(255,255,255,.62);color:var(--a);border-radius:999px;
  padding:5px 11px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;
- -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
  box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 2px 8px rgba(70,40,110,.08);transition:transform .2s var(--ease)}
-.peek-off{border:1px solid rgba(255,255,255,.7);background:rgba(255,255,255,.55);color:var(--mute);border-radius:999px;
+.peek-off{border:1px solid rgba(255,255,255,.7);background:rgba(255,255,255,.62);color:var(--mute);border-radius:999px;
  padding:5px 11px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;
- -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
  box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 2px 8px rgba(70,40,110,.08);transition:transform .2s var(--ease)}
 .peek-up:active,.peek-off:active{transform:scale(.94)}
 .peek-body{overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:2px 16px 14px;font-size:15px;line-height:1.42}
 .peek-body img.prev{max-height:16vh;width:auto;display:block;margin:8px 0;border-radius:12px}
 .peek-body ul{margin:6px 0 10px}
-/* вместо белой заливки — мягкая внутренняя тень: текст не мажется, но видно, что есть продолжение */
-.peek.has-more{box-shadow:
-   inset 0 1.5px 0 rgba(255,255,255,.98),
-   inset 0 -1.5px 2px rgba(255,255,255,.45),
-   inset 0 -26px 22px -22px rgba(70,40,110,.30),
-   0 22px 60px rgba(70,40,110,.24),
-   0 4px 14px rgba(70,40,110,.12)}
+/* без тени-смазки: продолжение текста читается по скроллбару */
 .peek.scrolled .peek-head{box-shadow:0 1px 0 rgba(0,0,0,.06)}
 @media(prefers-reduced-motion:reduce){.peek{transition:none}}
 

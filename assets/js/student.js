@@ -37,14 +37,17 @@ function setupTaskPeek(){
   const pb=p.querySelector(".peek-body");
   let pinned=sessionStorage.getItem("peek")==="1";
 
-  // размер и позиция — по видимой области: клавиатура уменьшает vv.height и плашка сжимается
+  // размер и позиция — по видимой области: клавиатура уменьшает vv.height и плашка сжимается.
+  // Пишем переменные ТОЛЬКО при реальном изменении: иначе каждый кадр скролла вызывал
+  // пересчёт layout у элемента с backdrop-filter, и анимация шла в 30 fps.
+  let lastH=0,lastT=-1;
   const sync=()=>{
+    if(!pinned)return;
     const vv=window.visualViewport;
-    const h=vv?vv.height:innerHeight;
-    const top=vv?vv.offsetTop:0;
-    p.style.setProperty("--peek-h",Math.max(120,Math.round(h*0.34))+"px");
-    p.style.setProperty("--peek-top",Math.round(top)+"px");
-    upd();
+    const h=Math.max(120,Math.round((vv?vv.height:innerHeight)*0.34));
+    const top=vv?Math.round(vv.offsetTop):0;
+    if(h!==lastH){lastH=h;p.style.setProperty("--peek-h",h+"px")}
+    if(top!==lastT){lastT=top;p.style.setProperty("--peek-top",top+"px")}
   };
   const upd=()=>{const end=pb.scrollTop+pb.clientHeight>=pb.scrollHeight-4;
     p.classList.toggle("has-more",!end);p.classList.toggle("scrolled",pb.scrollTop>4)};
@@ -55,7 +58,7 @@ function setupTaskPeek(){
     btn.innerHTML=pinned?ICON_CHECK+"Закреплено":ICON_PIN+"Закрепить сверху";
     btn.classList.toggle("on",pinned);
     sessionStorage.setItem("peek",pinned?"1":"0");
-    sync();
+    lastH=0;lastT=-1;sync();upd();
   };
   const toggle=()=>{pinned=!pinned;render();if(pinned)pb.scrollTop=0};
 
@@ -67,7 +70,6 @@ function setupTaskPeek(){
   // клавиатура: iOS/Android меняют visualViewport, а не layout — ловим и то и это
   if(window.visualViewport){
     visualViewport.addEventListener("resize",sync,{passive:true});
-    visualViewport.addEventListener("scroll",sync,{passive:true});
   }
   addEventListener("resize",sync,{passive:true});
   addEventListener("orientationchange",()=>setTimeout(sync,250));
