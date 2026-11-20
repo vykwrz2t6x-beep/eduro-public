@@ -13,6 +13,36 @@ function home(){
     student(code,name,await api("/api/public/"+encodeURIComponent(code)))}catch(x){$("#e").textContent=x.message}});
 }
 
+/* ---------- ПЛАВАЮЩЕЕ УСЛОВИЕ ----------
+   Когда карточка задачи уходит вверх за экран, сверху прилипает её копия
+   высотой в треть экрана — с собственным скроллом, чтобы не бегать вверх. */
+function setupTaskPeek(){
+  const card=$("#task-card");if(!card)return;
+  const src=card.querySelector(".tk-body");if(!src)return;
+  const p=document.createElement("div");
+  p.className="peek";p.id="peek";p.setAttribute("aria-hidden","true");
+  p.innerHTML='<div class="peek-head"><span class="peek-t">Условие задачи</span><button class="peek-up" type="button">↑ к условию</button></div><div class="peek-body"></div>';
+  const body=p.querySelector(".peek-body");
+  body.appendChild(src.cloneNode(true));
+  body.querySelectorAll("img").forEach(im=>im.removeAttribute("loading"));
+  document.body.appendChild(p);
+  p.querySelector(".peek-up").onclick=()=>card.scrollIntoView({behavior:"smooth",block:"start"});
+  let shown=false;
+  const set=on=>{if(on===shown)return;shown=on;p.classList.toggle("on",on);p.setAttribute("aria-hidden",String(!on))};
+  const check=()=>{
+    const r=card.getBoundingClientRect();
+    // условие полностью ушло вверх — показываем; видно хотя бы край — прячем
+    set(r.bottom<=0);
+  };
+  if("IntersectionObserver" in window){
+    const io=new IntersectionObserver(check,{threshold:[0,0.02,0.5,1]});
+    io.observe(card);
+  }
+  addEventListener("scroll",check,{passive:true});
+  addEventListener("resize",check,{passive:true});
+  check();
+}
+
 /* ---------- УЧЕНИК ---------- */
 function student(code,name,c){
   const taskHtml=`${md(c.task||"")}${(c.task_imgs||[]).map(u=>`<img class="prev" src="${u}" alt="Задача" style="margin-top:12px">`).join("")}`;
@@ -23,7 +53,7 @@ function student(code,name,c){
     return;
   }
   view(`<div class="wrap fade"><h1>${esc(c.title)}</h1><p class="mute" style="margin:0 0 6px">${esc(name)}</p>
-  <div class="card"><span class="lbl">Задача</span><div>${taskHtml}</div></div>
+  <div class="card" id="task-card"><span class="lbl">Задача</span><div class="tk-body">${taskHtml}</div></div>
   <div class="card" id="s1"><span class="lbl">1. Фото решения</span>
   <label class="file"><input type="file" id="file" accept="image/*" multiple><span id="ft">Сфотографировать или выбрать фото (можно несколько)</span></label>
   <div class="thumbs" id="thumbs"></div>
@@ -32,6 +62,8 @@ function student(code,name,c){
   <div class="card hide" id="s2"><span class="lbl">2. Проверь текст</span><p id="hint" class="mute" style="margin:0 0 12px;font-size:15px">Если я ошибся при чтении, исправь.</p>
   <textarea id="txt" placeholder="Напиши решение"></textarea><button class="btn block" id="send">Отправить на проверку</button><div class="err" id="e2"></div></div>
   <div class="hide" id="res"></div></div>`);
+
+  setupTaskPeek();
 
   const photos=[];
   const thumbs=$("#thumbs");

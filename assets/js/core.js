@@ -30,7 +30,7 @@ function drawThumbs(el,list){
   el.innerHTML=list.map((u,i)=>`<div class="thumb"><img src="${u}" alt=""><button data-i="${i}" aria-label="Удалить фото">×</button></div>`).join("");
   el.querySelectorAll("button").forEach(b=>b.onclick=()=>{list.splice(+b.dataset.i,1);drawThumbs(el,list);if(el.onchange)el.onchange()});
 }
-const view=h=>{$("#root").innerHTML=h;window.scrollTo(0,0)};
+const view=h=>{document.querySelectorAll(".peek").forEach(x=>x.remove());$("#root").innerHTML=h;window.scrollTo(0,0)};
 const sk=(n,h=74)=>Array(n).fill(`<div class="sk" style="height:${h}px;margin:10px 0"></div>`).join("");
 // «ИИ думает»: понятный индикатор с меняющимися этапами
 function think(el,steps){

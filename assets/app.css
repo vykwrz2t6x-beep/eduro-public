@@ -145,3 +145,20 @@ details[open]>*:not(summary){animation:f .35s var(--ease) both}
  .ov{align-items:flex-end}.sheet{margin-bottom:calc(var(--bot) + 12px)}
 }
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+
+/* плавающее условие (экран ученика) */
+.peek{position:fixed;left:50%;top:0;width:min(560px,calc(100% - 24px));z-index:60;
+ padding-top:var(--top);max-height:34vh;display:flex;flex-direction:column;
+ background:rgba(255,255,255,.74);-webkit-backdrop-filter:blur(26px) saturate(190%);backdrop-filter:blur(26px) saturate(190%);
+ border-radius:0 0 22px 22px;box-shadow:0 14px 38px rgba(70,40,110,.18),inset 0 -1px 0 rgba(255,255,255,.7);
+ opacity:0;transform:translate(-50%,-14px);pointer-events:none;
+ transition:opacity .28s ease,transform .38s var(--ease)}
+.peek.on{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+.peek-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 16px 6px;flex-shrink:0}
+.peek-t{font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--mute)}
+.peek-up{border:0;background:var(--tint);color:var(--a);border-radius:999px;padding:5px 12px;font-size:13px;font-weight:600;cursor:pointer}
+.peek-up:active{transform:scale(.95)}
+.peek-body{overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:0 16px 14px;font-size:15px;line-height:1.45}
+.peek-body img.prev{max-height:16vh;width:auto;display:block;margin:8px 0;border-radius:12px}
+.peek-body ul{margin:6px 0 10px}
+@media(prefers-reduced-motion:reduce){.peek{transition:none}}
