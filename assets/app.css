@@ -162,3 +162,8 @@ details[open]>*:not(summary){animation:f .35s var(--ease) both}
 .peek-body img.prev{max-height:16vh;width:auto;display:block;margin:8px 0;border-radius:12px}
 .peek-body ul{margin:6px 0 10px}
 @media(prefers-reduced-motion:reduce){.peek{transition:none}}
+.peek::after{content:"";position:absolute;left:0;right:0;bottom:0;height:30px;border-radius:0 0 22px 22px;
+ background:linear-gradient(180deg,rgba(255,255,255,0),rgba(255,255,255,.9));pointer-events:none;
+ opacity:0;transition:opacity .25s}
+.peek.has-more::after{opacity:1}
+.peek.scrolled .peek-head{box-shadow:0 1px 0 rgba(0,0,0,.06)}

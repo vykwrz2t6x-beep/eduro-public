@@ -27,6 +27,12 @@ function setupTaskPeek(){
   body.querySelectorAll("img").forEach(im=>im.removeAttribute("loading"));
   document.body.appendChild(p);
   p.querySelector(".peek-up").onclick=()=>card.scrollIntoView({behavior:"smooth",block:"start"});
+  // мягкий намёк, что внутри плашки есть ещё текст
+  const pb=p.querySelector(".peek-body");
+  const upd=()=>{const end=pb.scrollTop+pb.clientHeight>=pb.scrollHeight-4;
+    p.classList.toggle("has-more",!end);p.classList.toggle("scrolled",pb.scrollTop>4)};
+  pb.addEventListener("scroll",upd,{passive:true});addEventListener("resize",upd,{passive:true});
+  setTimeout(upd,60);
   let shown=false;
   const set=on=>{if(on===shown)return;shown=on;p.classList.toggle("on",on);p.setAttribute("aria-hidden",String(!on))};
   // Гистерезис: показываем, когда начало условия уехало вверх на 80px (или 15% его высоты),
