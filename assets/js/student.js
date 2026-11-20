@@ -29,17 +29,18 @@ function setupTaskPeek(){
   p.querySelector(".peek-up").onclick=()=>card.scrollIntoView({behavior:"smooth",block:"start"});
   let shown=false;
   const set=on=>{if(on===shown)return;shown=on;p.classList.toggle("on",on);p.setAttribute("aria-hidden",String(!on))};
+  // Гистерезис: показываем, когда начало условия уехало вверх на 80px (или 15% его высоты),
+  // прячем только когда условие снова почти на месте — иначе плашка дёргается на границе.
   const check=()=>{
     const r=card.getBoundingClientRect();
-    // условие полностью ушло вверх — показываем; видно хотя бы край — прячем
-    set(r.bottom<=0);
+    const trigger=Math.min(80,r.height*0.15);
+    if(!shown){ if(r.top < -trigger) set(true); }
+    else { if(r.top > -20) set(false); }
   };
-  if("IntersectionObserver" in window){
-    const io=new IntersectionObserver(check,{threshold:[0,0.02,0.5,1]});
-    io.observe(card);
-  }
-  addEventListener("scroll",check,{passive:true});
-  addEventListener("resize",check,{passive:true});
+  let raf=0;
+  const onScroll=()=>{ if(raf) return; raf=requestAnimationFrame(()=>{raf=0;check()}); };
+  addEventListener("scroll",onScroll,{passive:true});
+  addEventListener("resize",onScroll,{passive:true});
   check();
 }
 
