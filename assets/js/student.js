@@ -13,41 +13,65 @@ function home(){
     student(code,name,await api("/api/public/"+encodeURIComponent(code)))}catch(x){$("#e").textContent=x.message}});
 }
 
-/* ---------- ПЛАВАЮЩЕЕ УСЛОВИЕ ----------
-   Когда карточка задачи уходит вверх за экран, сверху прилипает её копия
-   высотой в треть экрана — с собственным скроллом, чтобы не бегать вверх. */
+/* ---------- ЗАКРЕПЛЁННОЕ УСЛОВИЕ ----------
+   Ученик сам решает, когда пришпилить условие к верху экрана: кнопка в шапке задачи.
+   Размер считается по ВИДИМОЙ области (visualViewport), поэтому клавиатура
+   на телефоне не съедает плашку и она остаётся видимой во время набора. */
 function setupTaskPeek(){
-  const card=$("#task-card");if(!card)return;
-  const src=card.querySelector(".tk-body");if(!src)return;
+  const card=$("#task-card"),btn=$("#pin");
+  if(!card||!btn)return;
+  const src=card.querySelector(".tk-body");
+  if(!src)return;
+
   const p=document.createElement("div");
   p.className="peek";p.id="peek";p.setAttribute("aria-hidden","true");
-  p.innerHTML='<div class="peek-head"><span class="peek-t">Условие задачи</span><button class="peek-up" type="button">↑ к условию</button></div><div class="peek-body"></div>';
-  const body=p.querySelector(".peek-body");
-  body.appendChild(src.cloneNode(true));
-  body.querySelectorAll("img").forEach(im=>im.removeAttribute("loading"));
+  p.innerHTML='<div class="peek-head"><span class="peek-t">Условие задачи</span><span class="peek-acts">'+
+    '<button class="peek-up" type="button">↓ к заданию</button>'+
+    '<button class="peek-off" type="button">Открепить</button></span></div><div class="peek-body"></div>';
+  p.querySelector(".peek-body").appendChild(src.cloneNode(true));
   document.body.appendChild(p);
-  p.querySelector(".peek-up").onclick=()=>card.scrollIntoView({behavior:"smooth",block:"start"});
-  // мягкий намёк, что внутри плашки есть ещё текст
+
   const pb=p.querySelector(".peek-body");
+  let pinned=sessionStorage.getItem("peek")==="1";
+
+  // размер и позиция — по видимой области: клавиатура уменьшает vv.height и плашка сжимается
+  const sync=()=>{
+    const vv=window.visualViewport;
+    const h=vv?vv.height:innerHeight;
+    const top=vv?vv.offsetTop:0;
+    p.style.setProperty("--peek-h",Math.max(120,Math.round(h*0.34))+"px");
+    p.style.top=Math.round(top)+"px";
+    upd();
+  };
   const upd=()=>{const end=pb.scrollTop+pb.clientHeight>=pb.scrollHeight-4;
     p.classList.toggle("has-more",!end);p.classList.toggle("scrolled",pb.scrollTop>4)};
-  pb.addEventListener("scroll",upd,{passive:true});addEventListener("resize",upd,{passive:true});
-  setTimeout(upd,60);
-  let shown=false;
-  const set=on=>{if(on===shown)return;shown=on;p.classList.toggle("on",on);p.setAttribute("aria-hidden",String(!on))};
-  // Гистерезис: показываем, когда начало условия уехало вверх на 80px (или 15% его высоты),
-  // прячем только когда условие снова почти на месте — иначе плашка дёргается на границе.
-  const check=()=>{
-    const r=card.getBoundingClientRect();
-    const trigger=Math.min(80,r.height*0.15);
-    if(!shown){ if(r.top < -trigger) set(true); }
-    else { if(r.top > -20) set(false); }
+
+  const render=()=>{
+    p.classList.toggle("on",pinned);
+    p.setAttribute("aria-hidden",String(!pinned));
+    btn.textContent=pinned?"Условие закреплено":"Закрепить сверху";
+    btn.classList.toggle("on",pinned);
+    sessionStorage.setItem("peek",pinned?"1":"0");
+    sync();
   };
-  let raf=0;
-  const onScroll=()=>{ if(raf) return; raf=requestAnimationFrame(()=>{raf=0;check()}); };
-  addEventListener("scroll",onScroll,{passive:true});
-  addEventListener("resize",onScroll,{passive:true});
-  check();
+  const toggle=()=>{pinned=!pinned;render();if(pinned)pb.scrollTop=0};
+
+  btn.onclick=toggle;
+  p.querySelector(".peek-up").onclick=()=>{card.scrollIntoView({behavior:"smooth",block:"start"})};
+  p.querySelector(".peek-off").onclick=()=>{pinned=false;render()};
+  pb.addEventListener("scroll",upd,{passive:true});
+
+  // клавиатура: iOS/Android меняют visualViewport, а не layout — ловим и то и это
+  if(window.visualViewport){
+    visualViewport.addEventListener("resize",sync,{passive:true});
+    visualViewport.addEventListener("scroll",sync,{passive:true});
+  }
+  addEventListener("resize",sync,{passive:true});
+  addEventListener("orientationchange",()=>setTimeout(sync,250));
+  document.addEventListener("focusin",()=>setTimeout(sync,300));
+  document.addEventListener("focusout",()=>setTimeout(sync,300));
+
+  render();
 }
 
 /* ---------- УЧЕНИК ---------- */
@@ -60,7 +84,7 @@ function student(code,name,c){
     return;
   }
   view(`<div class="wrap fade"><h1>${esc(c.title)}</h1><p class="mute" style="margin:0 0 6px">${esc(name)}</p>
-  <div class="card" id="task-card"><span class="lbl">Задача</span><div class="tk-body">${taskHtml}</div></div>
+  <div class="card" id="task-card"><div class="tk-head"><span class="lbl">Задача</span><button class="pin-btn" id="pin" type="button">Закрепить сверху</button></div><div class="tk-body">${taskHtml}</div></div>
   <div class="card" id="s1"><span class="lbl">1. Фото решения</span>
   <label class="file"><input type="file" id="file" accept="image/*" multiple><span id="ft">Сфотографировать или выбрать фото (можно несколько)</span></label>
   <div class="thumbs" id="thumbs"></div>
