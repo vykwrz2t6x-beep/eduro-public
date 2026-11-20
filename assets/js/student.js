@@ -17,6 +17,9 @@ function home(){
    Ученик сам решает, когда пришпилить условие к верху экрана: кнопка в шапке задачи.
    Размер считается по ВИДИМОЙ области (visualViewport), поэтому клавиатура
    на телефоне не съедает плашку и она остаётся видимой во время набора. */
+const ICON_PIN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 17.5V22"/><path d="M8 3h8l-1 6.5 3 3V15H6v-2.5l3-3z"/></svg>';
+const ICON_CHECK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>';
+
 function setupTaskPeek(){
   const card=$("#task-card"),btn=$("#pin");
   if(!card||!btn)return;
@@ -40,7 +43,7 @@ function setupTaskPeek(){
     const h=vv?vv.height:innerHeight;
     const top=vv?vv.offsetTop:0;
     p.style.setProperty("--peek-h",Math.max(120,Math.round(h*0.34))+"px");
-    p.style.top=Math.round(top)+"px";
+    p.style.setProperty("--peek-top",Math.round(top)+"px");
     upd();
   };
   const upd=()=>{const end=pb.scrollTop+pb.clientHeight>=pb.scrollHeight-4;
@@ -49,7 +52,7 @@ function setupTaskPeek(){
   const render=()=>{
     p.classList.toggle("on",pinned);
     p.setAttribute("aria-hidden",String(!pinned));
-    btn.textContent=pinned?"Условие закреплено":"Закрепить сверху";
+    btn.innerHTML=pinned?ICON_CHECK+"Закреплено":ICON_PIN+"Закрепить сверху";
     btn.classList.toggle("on",pinned);
     sessionStorage.setItem("peek",pinned?"1":"0");
     sync();

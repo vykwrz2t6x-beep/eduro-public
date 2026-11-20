@@ -146,34 +146,67 @@ details[open]>*:not(summary){animation:f .35s var(--ease) both}
 }
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 
-/* плавающее условие (экран ученика) */
-.peek{position:fixed;left:50%;top:var(--peek-top,0);width:min(560px,calc(100% - 24px));z-index:60;
- padding-top:var(--top);max-height:var(--peek-h,34vh);display:flex;flex-direction:column;
- background:rgba(255,255,255,.74);-webkit-backdrop-filter:blur(26px) saturate(190%);backdrop-filter:blur(26px) saturate(190%);
- border-radius:0 0 22px 22px;box-shadow:0 14px 38px rgba(70,40,110,.18),inset 0 -1px 0 rgba(255,255,255,.7);
- opacity:0;transform:translate(-50%,-14px);pointer-events:none;
- transition:opacity .28s ease,transform .38s var(--ease)}
-.peek.on{opacity:1;transform:translate(-50%,0);pointer-events:auto}
-.peek-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 14px 6px;flex-shrink:0;flex-wrap:nowrap;white-space:nowrap;overflow:hidden}
-.peek-t{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.peek-up{border:0;background:var(--tint);color:var(--a);border-radius:999px;padding:4px 10px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0}
-.peek-up:active{transform:scale(.95)}
-.peek-body{overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:0 14px 12px;font-size:15px;line-height:1.42}
+/* плавающее условие (экран ученика): liquid glass, скруглено со всех сторон, висит с отступом */
+.peek{position:fixed;left:50%;top:calc(var(--peek-top,0px) + 8px + var(--top));width:min(560px,calc(100% - 20px));z-index:60;
+ max-height:var(--peek-h,34vh);display:flex;flex-direction:column;border-radius:28px;
+ background:
+   radial-gradient(120% 90% at 18% -30%,rgba(255,255,255,.95),rgba(255,255,255,0) 62%),
+   linear-gradient(180deg,rgba(255,255,255,.78),rgba(255,255,255,.52));
+ -webkit-backdrop-filter:blur(40px) saturate(210%) brightness(1.05);backdrop-filter:blur(40px) saturate(210%) brightness(1.05);
+ border:1px solid rgba(255,255,255,.65);
+ box-shadow:
+   inset 0 1.5px 0 rgba(255,255,255,.98),
+   inset 0 -1.5px 2px rgba(255,255,255,.45),
+   inset 1px 0 0 rgba(255,255,255,.55),
+   inset -1px 0 0 rgba(255,255,255,.55),
+   0 22px 60px rgba(70,40,110,.24),
+   0 4px 14px rgba(70,40,110,.12);
+ opacity:0;transform:translate(-50%,-18px) scale(.985);pointer-events:none;overflow:hidden;
+ transition:opacity .3s ease,transform .45s var(--ease)}
+.peek.on{opacity:1;transform:translate(-50%,0) scale(1);pointer-events:auto}
+/* блик по контуру — «жидкое» стекло */
+.peek::before{content:"";position:absolute;inset:0;border-radius:inherit;padding:1.2px;pointer-events:none;
+ background:linear-gradient(150deg,rgba(255,255,255,.98),rgba(255,255,255,.10) 42%,rgba(255,255,255,.16) 62%,rgba(255,255,255,.85));
+ -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+ -webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude}
+.peek-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 15px 7px;
+ flex-shrink:0;flex-wrap:nowrap;white-space:nowrap;overflow:hidden}
+.peek-t{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mute);
+ white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:6px}
+.peek-t::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--a);box-shadow:0 0 0 3px rgba(255,59,48,.14)}
+.peek-acts{display:flex;gap:6px;align-items:center}
+.peek-up{border:1px solid rgba(255,255,255,.7);background:rgba(255,255,255,.55);color:var(--a);border-radius:999px;
+ padding:5px 11px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;
+ -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 2px 8px rgba(70,40,110,.08);transition:transform .2s var(--ease)}
+.peek-off{border:1px solid rgba(255,255,255,.7);background:rgba(255,255,255,.55);color:var(--mute);border-radius:999px;
+ padding:5px 11px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;
+ -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 2px 8px rgba(70,40,110,.08);transition:transform .2s var(--ease)}
+.peek-up:active,.peek-off:active{transform:scale(.94)}
+.peek-body{overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:2px 16px 14px;font-size:15px;line-height:1.42}
 .peek-body img.prev{max-height:16vh;width:auto;display:block;margin:8px 0;border-radius:12px}
 .peek-body ul{margin:6px 0 10px}
-@media(prefers-reduced-motion:reduce){.peek{transition:none}}
-.peek::after{content:"";position:absolute;left:0;right:0;bottom:0;height:30px;border-radius:0 0 22px 22px;
- background:linear-gradient(180deg,rgba(255,255,255,0),rgba(255,255,255,.9));pointer-events:none;
+.peek::after{content:"";position:absolute;left:0;right:0;bottom:0;height:30px;border-radius:0 0 28px 28px;
+ background:linear-gradient(180deg,rgba(255,255,255,0),rgba(255,255,255,.88));pointer-events:none;
  opacity:0;transition:opacity .25s}
 .peek.has-more::after{opacity:1}
 .peek.scrolled .peek-head{box-shadow:0 1px 0 rgba(0,0,0,.06)}
+@media(prefers-reduced-motion:reduce){.peek{transition:none}}
 
 /* кнопка закрепления условия в шапке задачи */
 .tk-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 8px;flex-wrap:wrap}
 .tk-head .lbl{margin:0}
-.pin-btn{border:0;background:var(--tint);color:var(--a);border-radius:999px;padding:7px 14px;font-size:14px;font-weight:600;cursor:pointer;transition:transform .2s var(--ease),background .2s}
+.pin-btn{display:inline-flex;align-items:center;gap:7px;border:0;border-radius:999px;padding:10px 16px;
+ font-size:14px;font-weight:600;line-height:1;cursor:pointer;color:#fff;
+ background:linear-gradient(180deg,#ff7f6c,var(--a));
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.55),inset 0 -1px 0 rgba(0,0,0,.06),0 8px 20px rgba(255,59,48,.35);
+ transition:transform .22s var(--ease),box-shadow .22s,background .22s}
+.pin-btn svg{width:15px;height:15px;flex-shrink:0}
+.pin-btn:hover{transform:translateY(-1px);box-shadow:inset 0 1px 0 rgba(255,255,255,.6),0 12px 26px rgba(255,59,48,.42)}
 .pin-btn:active{transform:scale(.95)}
-.pin-btn.on{background:var(--a);color:#fff;box-shadow:0 6px 16px rgba(255,59,48,.3)}
+.pin-btn.on{background:linear-gradient(180deg,rgba(255,255,255,.92),rgba(255,255,255,.7));color:var(--a);
+ box-shadow:inset 0 1px 0 #fff,0 0 0 1px var(--ln),0 6px 16px rgba(70,40,110,.10)}
 .peek-acts{display:flex;gap:6px;align-items:center}
 .peek-off{border:0;background:rgba(255,255,255,.7);color:var(--mute);border-radius:999px;padding:4px 10px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;box-shadow:inset 0 0 0 1px var(--ln)}
 .peek-off:active{transform:scale(.95)}
