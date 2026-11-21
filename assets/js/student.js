@@ -144,12 +144,18 @@ function student(code,name,c){
   const sid=()=>sessionStorage.getItem(sidKey);
 
   const photos=[];
+  const MAXP=3; // сервер режет на 3 фото за 3 минуты — больше за раз и не нужно
   const thumbs=$("#thumbs");
   const refresh=()=>{$("#save").disabled=!photos.length;$("#save").textContent=photos.length?`Распознать фото (${photos.length})`:"Распознать фото";
     $("#ft").textContent=photos.length?"Добавить ещё фото":"Сфотографировать или выбрать фото (можно несколько)"};
   thumbs.onchange=refresh;
 
-  $("#file").onchange=async e=>{const files=[...e.target.files];e.target.value="";
+  $("#file").onchange=async e=>{let files=[...e.target.files];e.target.value="";
+    if(photos.length+files.length>MAXP){
+      files=files.slice(0,Math.max(0,MAXP-photos.length));
+      if(!files.length){toast(`За раз — ${MAXP} фото. Сначала распознай эти`);return}
+      toast(`Больше ${MAXP} фото за раз не нужно — взял первые`);
+    }
     for(const f of files){try{photos.push(await shrink(f))}catch(x){$("#e1").textContent=x.message}}
     drawThumbs(thumbs,photos);refresh()};
   $("#typeit").onclick=e=>{e.preventDefault();$("#hint").textContent="Напиши решение текстом.";
@@ -162,7 +168,10 @@ function student(code,name,c){
   $("#save").onclick=e=>busy(e.currentTarget,async()=>{try{$("#e1").textContent="";
     thumbs.classList.add("scan");$("#save").textContent="Читаю почерк…";
     const r=await api("/api/ocr",{images_b64:photos.map(u=>u.split(",")[1])});
-    $("#txt").value=r.text;$("#s2").classList.remove("hide");$("#s2").classList.add("fade");$("#s2").scrollIntoView({behavior:"smooth",block:"start"})}catch(x){$("#e1").textContent=x.message}finally{thumbs.classList.remove("scan");refresh()}});
+    $("#txt").value=r.text;
+    // фото уже распознаны — освобождаем место под следующую порцию (лимит 3 за 3 минуты)
+    photos.length=0;drawThumbs(thumbs,photos);
+    $("#s2").classList.remove("hide");$("#s2").classList.add("fade");$("#s2").scrollIntoView({behavior:"smooth",block:"start"})}catch(x){$("#e1").textContent=x.message}finally{thumbs.classList.remove("scan");refresh()}});
   $("#send").onclick=e=>busy(e.currentTarget,async()=>{const R=$("#res");let stop;try{$("#e2").textContent="";
     $("#s1").classList.add("hide");$("#s2").classList.add("hide");R.className="result fade";stop=think(R,["Читаю решение…","Сверяю с критериями…","Считаю оценку…"]);
     const r=await api("/api/submit",{code,name,text:$("#txt").value,student_id:sid()});

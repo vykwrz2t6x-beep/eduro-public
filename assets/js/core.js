@@ -10,8 +10,25 @@ function md(t){
   return h.replace(/((?:<li>.*<\/li>\n?)+)/g,"<ul>$1</ul>").replace(/\n/g,"<br>").replace(/<\/ul><br>/g,"</ul>").replace(/<br><ul>/g,"<ul>");
 }
 let TOKEN=sessionStorage.getItem("t")||"";
+// Отпечаток устройства для лимитов: canvas + параметры экрана/языка. Не трекер,
+// ничего не отправляет наружу — только в наш API заголовком X-FP.
+let FP="";
+async function getFP(){
+  if(FP)return FP;
+  try{
+    const parts=[navigator.userAgent,navigator.language||"",screen.width+"x"+screen.height,screen.colorDepth,new Date().getTimezoneOffset(),navigator.hardwareConcurrency||0,navigator.platform||""];
+    try{const c=document.createElement("canvas");c.width=220;c.height=40;const x=c.getContext("2d");
+      x.textBaseline="top";x.font="16px Arial";x.fillStyle="#f60";x.fillRect(0,0,120,20);x.fillStyle="#069";x.fillText("eduro",2,2);
+      parts.push(c.toDataURL().slice(-160))}catch(e){}
+    const buf=new TextEncoder().encode(parts.join("|"));
+    if(crypto.subtle){const h=await crypto.subtle.digest("SHA-256",buf);
+      FP=[...new Uint8Array(h)].slice(0,12).map(b=>b.toString(16).padStart(2,"0")).join("")}
+    else{let h=0;for(const s of parts.join("|"))h=(h*31+s.charCodeAt(0))|0;FP="f"+(h>>>0).toString(16)}
+  }catch(e){FP="na"}
+  return FP;
+}
 async function api(path,body,method){
-  const o={method:method||(body?"POST":"GET"),headers:{"Content-Type":"application/json","X-Teacher":TOKEN}};
+  const o={method:method||(body?"POST":"GET"),headers:{"Content-Type":"application/json","X-Teacher":TOKEN,"X-FP":await getFP()}};
   if(body)o.body=JSON.stringify(body);
   const r=await fetch(API_BASE+path,o);const j=await r.json().catch(()=>({}));
   if(!r.ok)throw new Error(typeof j.detail==="string"?j.detail:"Ошибка");return j;

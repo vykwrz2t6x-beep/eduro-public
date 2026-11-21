@@ -6,8 +6,8 @@ function teacherLogin(){
   <p style="text-align:center"><a href="#" id="back" class="link">Я ученик</a></p></div>`);
   $("#back").onclick=e=>{e.preventDefault();home()};
   $("#tid").onkeydown=e=>{if(e.key==="Enter")$("#go").click()};
-  $("#go").onclick=e=>busy(e.currentTarget,async()=>{try{TOKEN=$("#tid").value.trim();await api("/api/teacher/login",{id:TOKEN});
-    sessionStorage.setItem("t",TOKEN);shell("create")}catch(x){TOKEN="";$("#e").textContent="Неверный ID"}});
+  $("#go").onclick=e=>busy(e.currentTarget,async()=>{try{TOKEN=$("#tid").value.trim();const r=await api("/api/teacher/login",{id:TOKEN});
+    sessionStorage.setItem("t",TOKEN);sessionStorage.setItem("cab",r.cabinet||"");shell("create")}catch(x){TOKEN="";$("#e").textContent="Неверный ID"}});
 }
 const ICON={
  create:'<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
@@ -26,7 +26,7 @@ function movePill(instant){
 addEventListener("resize",()=>movePill(true));
 function shell(page){
   const nav=[["create","Создать"],["results","Результаты"],["ask","Спросить ИИ"]];
-  view(`<div class="app"><nav class="side"><i class="pill" id="pill"></i><div class="logo">Проверка ДЗ</div>
+  view(`<div class="app"><nav class="side"><i class="pill" id="pill"></i><div class="logo">${esc(sessionStorage.getItem("cab")||"Проверка ДЗ")}</div>
   ${nav.map(n=>`<button class="nav" data-p="${n[0]}">${ICON[n[0]]}<span>${n[1]}</span></button>`).join("")}
   <button class="nav" id="logout">${ICON.out}<span>Выйти</span></button></nav><main class="main" id="main"></main></div>`);
   document.querySelectorAll(".nav[data-p]").forEach(b=>b.onclick=()=>{if(b.dataset.p!==PAGE)go(b.dataset.p)});
