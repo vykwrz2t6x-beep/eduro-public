@@ -15,8 +15,10 @@ function home(){
 
 /* ---------- ЗАКРЕПЛЁННОЕ УСЛОВИЕ ----------
    Ученик сам решает, когда пришпилить условие к верху экрана: кнопка в шапке задачи.
-   Размер считается по ВИДИМОЙ области (visualViewport), поэтому клавиатура
-   на телефоне не съедает плашку и она остаётся видимой во время набора. */
+   Размер и смещение считаются по ВИДИМОЙ области (visualViewport), поэтому клавиатура
+   на телефоне не съедает плашку и она остаётся видимой во время набора.
+   Дёрганье убрано: смещение рисуется через transform (композитор, без layout),
+   scroll/resize/focus схлопнуты в один rAF-кадр, will-change живёт только на время анимации. */
 const ICON_PIN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 17.5V22"/><path d="M8 3h8l-1 6.5 3 3V15H6v-2.5l3-3z"/></svg>';
 const ICON_CHECK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>';
 
@@ -25,63 +27,99 @@ function setupTaskPeek(){
   if(!card||!btn)return;
   const src=card.querySelector(".tk-body");
   if(!src)return;
+  // закреплять нечего: пустое условие (нет ни текста, ни картинок)
+  if(!src.textContent.trim()&&!src.querySelector("img")){btn.remove();return}
+
+  // страховка от двойной инициализации: старая плашка и её слушатели не должны остаться
+  if(typeof window.peekDestroy==="function"){try{window.peekDestroy()}catch(e){}}
+  document.querySelectorAll(".peek").forEach(x=>x.remove());
 
   const p=document.createElement("div");
-  p.className="peek";p.id="peek";p.setAttribute("aria-hidden","true");
+  p.className="peek";p.setAttribute("aria-hidden","true");p.setAttribute("inert","");
   p.innerHTML='<div class="peek-head"><span class="peek-t">Условие</span><span class="peek-acts">'+
     '<button class="peek-up" type="button">↓ к заданию</button>'+
     '<button class="peek-off" type="button">Открепить</button></span></div><div class="peek-body"></div>';
-  p.querySelector(".peek-body").appendChild(src.cloneNode(true));
+  // клон без id: дубли id ломают getElementById и селекторы
+  const clone=src.cloneNode(true);
+  clone.querySelectorAll("[id]").forEach(n=>n.removeAttribute("id"));
+  p.querySelector(".peek-body").appendChild(clone);
   document.body.appendChild(p);
 
   const pb=p.querySelector(".peek-body");
   let pinned=sessionStorage.getItem("peek")==="1";
+  let raf=0,animT=0;
 
-  // размер и позиция — по видимой области: клавиатура уменьшает vv.height и плашка сжимается.
-  // Пишем переменные ТОЛЬКО при реальном изменении: иначе каждый кадр скролла вызывал
-  // пересчёт layout у элемента с backdrop-filter, и анимация шла в 30 fps.
-  let lastH=0,lastT=-1;
+  // Читаем visualViewport и пишем переменные только по факту изменения.
+  // --peek-top уходит в transform, а не в top: элемент с backdrop-filter не пересчитывает layout.
   const sync=()=>{
+    raf=0;
     if(!pinned)return;
     const vv=window.visualViewport;
     const h=Math.max(120,Math.round((vv?vv.height:innerHeight)*0.34));
     const top=vv?Math.round(vv.offsetTop):0;
-    if(h!==lastH){lastH=h;p.style.setProperty("--peek-h",h+"px")}
-    if(top!==lastT){lastT=top;p.style.setProperty("--peek-top",top+"px")}
+    if(p.style.getPropertyValue("--peek-h")!==h+"px")p.style.setProperty("--peek-h",h+"px");
+    if(p.style.getPropertyValue("--peek-top")!==top+"px")p.style.setProperty("--peek-top",top+"px");
   };
-  const upd=()=>{const end=pb.scrollTop+pb.clientHeight>=pb.scrollHeight-4;
-    p.classList.toggle("has-more",!end);p.classList.toggle("scrolled",pb.scrollTop>4)};
+  const queue=()=>{if(!raf)raf=requestAnimationFrame(sync)};
+  const upd=()=>{p.classList.toggle("scrolled",pb.scrollTop>4)};
+  let uraf=0;
+  const queueUpd=()=>{if(!uraf)uraf=requestAnimationFrame(()=>{uraf=0;upd()})};
 
   const render=()=>{
     p.classList.toggle("on",pinned);
     p.setAttribute("aria-hidden",String(!pinned));
+    if(pinned)p.removeAttribute("inert");else p.setAttribute("inert","");
     btn.innerHTML=pinned?ICON_CHECK+"Закреплено":ICON_PIN+"Закрепить сверху";
     btn.classList.toggle("on",pinned);
-    sessionStorage.setItem("peek",pinned?"1":"0");
-    lastH=0;lastT=-1;sync();upd();
+    btn.setAttribute("aria-pressed",String(pinned));
+    const v=pinned?"1":"0";
+    if(sessionStorage.getItem("peek")!==v)sessionStorage.setItem("peek",v);
+    // will-change только на время перехода — иначе blur-слой висит в памяти постоянно
+    p.classList.add("anim");
+    clearTimeout(animT);animT=setTimeout(()=>p.classList.remove("anim"),380);
+    sync();upd();
   };
-  const toggle=()=>{pinned=!pinned;render();if(pinned)pb.scrollTop=0};
+  const toggle=()=>{pinned=!pinned;if(pinned)pb.scrollTop=0;render()};
+
+  const toCard=()=>{
+    const off=(pinned?p.getBoundingClientRect().height:0)+12;
+    const y=card.getBoundingClientRect().top+window.scrollY-off;
+    window.scrollTo({top:y,behavior:"smooth"});
+  };
 
   btn.onclick=toggle;
-  p.querySelector(".peek-up").onclick=()=>{card.scrollIntoView({behavior:"smooth",block:"start"})};
+  p.querySelector(".peek-up").onclick=toCard;
   p.querySelector(".peek-off").onclick=()=>{pinned=false;render()};
-  pb.addEventListener("scroll",upd,{passive:true});
+  pb.addEventListener("scroll",queueUpd,{passive:true});
 
-  // клавиатура: iOS/Android меняют visualViewport, а не layout — ловим и то и это
-  if(window.visualViewport){
-    visualViewport.addEventListener("resize",sync,{passive:true});
-  }
-  addEventListener("resize",sync,{passive:true});
-  addEventListener("orientationchange",()=>setTimeout(sync,250));
-  document.addEventListener("focusin",()=>setTimeout(sync,300));
-  document.addEventListener("focusout",()=>setTimeout(sync,300));
+  // клавиатура: iOS/Android меняют visualViewport (resize) и панорамируют его (scroll)
+  const vv=window.visualViewport;
+  if(vv){vv.addEventListener("resize",queue,{passive:true});vv.addEventListener("scroll",queue,{passive:true})}
+  addEventListener("resize",queue,{passive:true});
+  document.addEventListener("focusin",queue);
+  document.addEventListener("focusout",queue);
+
+  // снятие слушателей при уходе с экрана (иначе они копятся при каждом входе)
+  window.peekDestroy=function(){
+    clearTimeout(animT);
+    if(raf)cancelAnimationFrame(raf);
+    if(uraf)cancelAnimationFrame(uraf);
+    raf=uraf=0;
+    if(vv){vv.removeEventListener("resize",queue);vv.removeEventListener("scroll",queue)}
+    removeEventListener("resize",queue);
+    document.removeEventListener("focusin",queue);
+    document.removeEventListener("focusout",queue);
+    p.classList.remove("anim");
+    p.remove();
+    window.peekDestroy=null;
+  };
 
   render();
 }
 
 /* ---------- УЧЕНИК ---------- */
 function student(code,name,c){
-  const taskHtml=`${md(c.task||"")}${(c.task_imgs||[]).map(u=>`<img class="prev" src="${u}" alt="Задача" style="margin-top:12px">`).join("")}`;
+  const taskHtml=`${md(c.task||"")}${(c.task_imgs||[]).map(u=>`<img class="prev" src="${esc(u)}" alt="Задача" loading="lazy" decoding="async" style="margin-top:12px">`).join("")}`;
   if(c.closed){
     view(`<div class="wrap fade"><h1>${esc(c.title)}</h1><p class="mute" style="margin:0 0 6px">${esc(name)}</p>
     <div class="card"><span class="lbl">Задача</span><div>${taskHtml}</div></div>
@@ -89,7 +127,7 @@ function student(code,name,c){
     return;
   }
   view(`<div class="wrap fade"><h1>${esc(c.title)}</h1><p class="mute" style="margin:0 0 6px">${esc(name)}</p>
-  <div class="card" id="task-card"><div class="tk-head"><span class="lbl">Задача</span><button class="pin-btn" id="pin" type="button">Закрепить сверху</button></div><div class="tk-body">${taskHtml}</div></div>
+  <div class="card" id="task-card"><div class="tk-head"><span class="lbl">Задача</span><button class="pin-btn" id="pin" type="button" aria-pressed="false">Закрепить сверху</button></div><div class="tk-body">${taskHtml}</div></div>
   <div class="card" id="s1"><span class="lbl">1. Фото решения</span>
   <label class="file"><input type="file" id="file" accept="image/*" multiple><span id="ft">Сфотографировать или выбрать фото (можно несколько)</span></label>
   <div class="thumbs" id="thumbs"></div>
@@ -100,6 +138,10 @@ function student(code,name,c){
   <div class="hide" id="res"></div></div>`);
 
   setupTaskPeek();
+
+  // sid привязан к коду задачи: иначе id из прошлой домашки уезжает в следующую
+  const sidKey="sid:"+code;
+  const sid=()=>sessionStorage.getItem(sidKey);
 
   const photos=[];
   const thumbs=$("#thumbs");
@@ -116,21 +158,22 @@ function student(code,name,c){
   const nope=e=>{e.preventDefault();toast("Вставка отключена, напиши решение сам");};
   tx.addEventListener("paste",nope);
   tx.addEventListener("drop",nope);
-  tx.addEventListener("keydown",e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="v")nope(e)});
+  tx.addEventListener("keydown",e=>{if((e.ctrlKey||e.metaKey)&&String(e.key).toLowerCase()==="v")nope(e)});
   $("#save").onclick=e=>busy(e.currentTarget,async()=>{try{$("#e1").textContent="";
     thumbs.classList.add("scan");$("#save").textContent="Читаю почерк…";
     const r=await api("/api/ocr",{images_b64:photos.map(u=>u.split(",")[1])});
     $("#txt").value=r.text;$("#s2").classList.remove("hide");$("#s2").classList.add("fade");$("#s2").scrollIntoView({behavior:"smooth",block:"start"})}catch(x){$("#e1").textContent=x.message}finally{thumbs.classList.remove("scan");refresh()}});
   $("#send").onclick=e=>busy(e.currentTarget,async()=>{const R=$("#res");let stop;try{$("#e2").textContent="";
     $("#s1").classList.add("hide");$("#s2").classList.add("hide");R.className="result fade";stop=think(R,["Читаю решение…","Сверяю с критериями…","Считаю оценку…"]);
-    const r=await api("/api/submit",{code,name,text:$("#txt").value,student_id:sessionStorage.getItem("sid")||null});
-    stop();sessionStorage.setItem("sid",r.student_id);
+    const r=await api("/api/submit",{code,name,text:$("#txt").value,student_id:sid()});
+    stop();stop=null;
+    if(r.student_id)sessionStorage.setItem(sidKey,r.student_id);
     R.className="result fade";
-    R.innerHTML=`<span class="lbl">Твоя оценка</span><div class="score">${r.score}<span style="font-size:28px">/10</span></div>
-    <p style="font-size:18px;margin:12px 0 20px">${esc(r.verdict)}</p>
-    <h2>Сильные стороны</h2><ul>${r.strengths.map(s=>`<li>${esc(s)}</li>`).join("")||"<li>—</li>"}</ul>
-    <h2>Над чем поработать</h2><ul>${r.weaknesses.map(s=>`<li>${esc(s)}</li>`).join("")||"<li>—</li>"}</ul>
+    const score=(r.score===0||r.score)?r.score:"—",verdict=r.verdict||"",strong=r.strengths||[],weak=r.weaknesses||[];
+    R.innerHTML=`<span class="lbl">Твоя оценка</span><div class="score">${esc(score)}<span style="font-size:28px">/10</span></div>
+    <p style="font-size:18px;margin:12px 0 20px">${esc(verdict)}</p>
+    <h2>Сильные стороны</h2><ul>${strong.map(s=>`<li>${esc(s)}</li>`).join("")||"<li>—</li>"}</ul>
+    <h2>Над чем поработать</h2><ul>${weak.map(s=>`<li>${esc(s)}</li>`).join("")||"<li>—</li>"}</ul>
     <p class="mute" style="margin:0">Работа отправлена учителю.</p>`;window.scrollTo({top:0,behavior:"smooth"})}
     catch(x){stop&&stop();R.className="hide";$("#s1").classList.remove("hide");$("#s2").classList.remove("hide");$("#e2").textContent=x.message}});
 }
-
